@@ -6,7 +6,7 @@ import { getMultipleChoiceDecisionAdvice } from '@/ai/flows/multiple-choice-deci
 import { suggestFinancialWeights } from '@/ai/flows/financial-decision-weight-suggestion';
 
 const yesNoSchema = z.object({
-  context: z.string().min(10, 'Please provide more context for the decision.'),
+  context: z.string().min(10, 'Por favor, forneça mais contexto para a decisão.'),
 });
 
 export async function getYesNoAdviceAction(prevState: any, formData: FormData) {
@@ -21,13 +21,13 @@ export async function getYesNoAdviceAction(prevState: any, formData: FormData) {
     return { advice: result.advice };
   } catch (e) {
     console.error(e);
-    return { error: 'Failed to get advice from AI. Please try again.' };
+    return { error: 'Falha ao obter conselho da IA. Por favor, tente novamente.' };
   }
 }
 
 const multipleChoiceSchema = z.object({
-  context: z.string().min(10, 'Please provide more context for the decision.'),
-  options: z.array(z.string().min(1, 'Option cannot be empty.')).min(2, 'Please provide at least two options.'),
+  context: z.string().min(10, 'Por favor, forneça mais contexto para a decisão.'),
+  options: z.array(z.string().min(1, 'A opção não pode estar vazia.')).min(2, 'Por favor, forneça pelo menos duas opções.'),
 });
 
 export async function getMultipleChoiceAdviceAction(prevState: any, formData: FormData) {
@@ -41,19 +41,19 @@ export async function getMultipleChoiceAdviceAction(prevState: any, formData: Fo
 
   if (!validation.success) {
     const fieldErrors = validation.error.flatten().fieldErrors;
-    return { error: fieldErrors.context?.[0] || fieldErrors.options?.[0] || 'Invalid input.' };
+    return { error: fieldErrors.context?.[0] || fieldErrors.options?.[0] || 'Entrada inválida.' };
   }
   try {
     const result = await getMultipleChoiceDecisionAdvice({ context: validation.data.context, options: validation.data.options });
     return { advice: result.advice };
   } catch (e) {
     console.error(e);
-    return { error: 'Failed to get advice from AI. Please try again.' };
+    return { error: 'Falha ao obter conselho da IA. Por favor, tente novamente.' };
   }
 }
 
 const financialAnalysisSchema = z.object({
-  context: z.string().min(10, 'Please provide more context for the financial decision.'),
+  context: z.string().min(10, 'Por favor, forneça mais contexto para a decisão financeira.'),
 });
 
 export async function getFinancialWeightsAction(prevState: any, formData: FormData) {
@@ -68,6 +68,6 @@ export async function getFinancialWeightsAction(prevState: any, formData: FormDa
     return { suggestions: result.suggestions };
   } catch (e) {
     console.error(e);
-    return { error: 'Failed to get suggestions from AI. Please try again.' };
+    return { error: 'Falha ao obter sugestões da IA. Por favor, tente novamente.' };
   }
 }

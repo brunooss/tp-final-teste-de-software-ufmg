@@ -38,7 +38,7 @@ const prompt = ai.definePrompt({
   name: 'multipleChoiceDecisionAdvicePrompt',
   input: {schema: MultipleChoiceDecisionAdviceInputSchema},
   output: {schema: MultipleChoiceDecisionAdviceOutputSchema},
-  prompt: `Given the following decision context and options, provide AI-generated advice to help choose the best option.\n\nContext: {{{context}}}\nOptions: {{#each options}}- {{{this}}}\n{{/each}}\n\nAdvice: `,
+  prompt: `Dado o seguinte contexto de decisão e opções, forneça conselhos gerados por IA para ajudar a escolher a melhor opção.\n\nContexto: {{{context}}}\nOpções: {{#each options}}- {{{this}}}\n{{/each}}\n\nConselho: `,
 });
 
 const multipleChoiceDecisionAdviceFlow = ai.defineFlow(

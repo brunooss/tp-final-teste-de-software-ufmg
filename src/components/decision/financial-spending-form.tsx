@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const formSchema = z.object({
-  context: z.string().min(10, 'Please provide more context for the decision.'),
-  options: z.array(z.object({ value: z.string().min(1, 'Option cannot be empty.') })).min(2, 'Please provide at least two options.'),
+  context: z.string().min(10, 'Por favor, forneça mais contexto para a decisão.'),
+  options: z.array(z.object({ value: z.string().min(1, 'A opção não pode estar vazia.') })).min(2, 'Por favor, forneça pelo menos duas opções.'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -33,8 +33,8 @@ export function FinancialSpendingForm() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      context: 'Car acquisition',
-      options: [{ value: 'Financing' }, { value: 'Consortium' }],
+      context: 'Aquisição de carro',
+      options: [{ value: 'Financiamento' }, { value: 'Consórcio' }],
     },
   });
 
@@ -54,18 +54,18 @@ export function FinancialSpendingForm() {
       decision,
     });
     toast({
-      title: 'Decision Saved',
-      description: `You chose "${decision}" for: ${context.substring(0, 30)}...`,
+      title: 'Decisão Salva',
+      description: `Você escolheu "${decision}" para: ${context.substring(0, 30)}...`,
     });
     form.reset({
-      context: 'Car acquisition',
-      options: [{ value: 'Financing' }, { value: 'Consortium' }],
+      context: 'Aquisição de carro',
+      options: [{ value: 'Financiamento' }, { value: 'Consórcio' }],
     });
   };
   
   const onSubmit = () => {
-    // This form doesn't submit to an action, it just enables the decision dropdown.
-    // The dropdown itself handles the decision saving.
+    // Este formulário não envia para uma ação, ele apenas habilita o dropdown de decisão.
+    // O próprio dropdown lida com o salvamento da decisão.
   };
 
   const isFormInvalid = !form.formState.isValid;
@@ -76,8 +76,8 @@ export function FinancialSpendingForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Your Decision</CardTitle>
-            <CardDescription>Describe the context and the financial choices you are considering.</CardDescription>
+            <CardTitle>Sua Decisão</CardTitle>
+            <CardDescription>Descreva o contexto e as opções financeiras que você está considerando.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -85,16 +85,16 @@ export function FinancialSpendingForm() {
               name="context"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Decision Context</FormLabel>
+                  <FormLabel>Contexto da Decisão</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="e.g., Which laptop should I buy for my new job?" {...field} />
+                    <Textarea placeholder="Ex: Qual laptop devo comprar para o meu novo trabalho?" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <div>
-              <FormLabel>Options</FormLabel>
+              <FormLabel>Opções</FormLabel>
               <div className="space-y-2 mt-2">
                 {fields.map((field, index) => (
                   <FormField
@@ -105,7 +105,7 @@ export function FinancialSpendingForm() {
                       <FormItem>
                         <div className="flex items-center gap-2">
                           <FormControl>
-                            <Input placeholder={`Option ${index + 1}`} {...field} />
+                            <Input placeholder={`Opção ${index + 1}`} {...field} />
                           </FormControl>
                           <Button
                             type="button"
@@ -125,13 +125,13 @@ export function FinancialSpendingForm() {
               </div>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={() => append({ value: '' })}>
-              <Plus className="mr-2 h-4 w-4" /> Add Option
+              <Plus className="mr-2 h-4 w-4" /> Adicionar Opção
             </Button>
           </CardContent>
           <CardFooter className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="default" disabled={isFormInvalid}>Make a Decision</Button>
+                <Button variant="default" disabled={isFormInvalid}>Tomar uma Decisão</Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 {currentOptions.map((option, index) => (

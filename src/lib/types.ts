@@ -9,7 +9,7 @@ export interface BaseDecision {
 
 export interface YesNoDecision extends BaseDecision {
   type: 'Yes/No';
-  decision: 'Yes' | 'No';
+  decision: 'Sim' | 'Não';
 }
 
 export interface MultipleChoiceDecision extends BaseDecision {

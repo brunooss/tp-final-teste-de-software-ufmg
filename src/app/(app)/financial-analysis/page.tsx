@@ -4,9 +4,9 @@ export default function FinancialAnalysisPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight font-headline">Financial Decision Analysis</h1>
+        <h1 className="text-2xl font-bold tracking-tight font-headline">Análise de Decisão Financeira</h1>
         <p className="text-muted-foreground">
-          Analyze decisions with fixed and variable costs. Our AI can suggest different weightings to help you see the bigger picture.
+          Analise decisões com custos fixos e variáveis. Nossa IA pode sugerir diferentes pesos para ajudá-lo a ver o cenário completo.
         </p>
       </div>
       <FinancialAnalysisForm />

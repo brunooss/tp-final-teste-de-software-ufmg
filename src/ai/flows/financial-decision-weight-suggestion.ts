@@ -35,12 +35,12 @@ const prompt = ai.definePrompt({
   name: 'financialWeightSuggestionPrompt',
   input: {schema: FinancialWeightInputSchema},
   output: {schema: FinancialWeightOutputSchema},
-  prompt: `You are an expert financial advisor. Given the following context, suggest several different weights for fixed and variable costs to help the user understand different scenarios.
+  prompt: `Você é um consultor financeiro especialista. Dado o seguinte contexto, sugira vários pesos diferentes para custos fixos e variáveis para ajudar o usuário a entender diferentes cenários.
 
-Context: {{{context}}}
+Contexto: {{{context}}}
 
-Provide a variety of suggestions with different weights, and a brief rationale for each suggestion.
-Ensure that fixedCostWeight and variableCostWeight sum to 1 for each suggestion.
+Forneça uma variedade de sugestões com pesos diferentes e uma breve justificativa para cada sugestão.
+Certifique-se de que fixedCostWeight e variableCostWeight somem 1 para cada sugestão.
 `,
 });
 

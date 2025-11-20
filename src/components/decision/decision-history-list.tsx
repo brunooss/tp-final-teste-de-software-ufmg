@@ -4,6 +4,7 @@ import { useDecisionHistory } from '@/hooks/use-decision-history';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Badge } from '../ui/badge';
 import type { Decision } from '@/lib/types';
 import { Button } from '../ui/button';
@@ -27,27 +28,27 @@ function DecisionCard({ decision }: { decision: Decision }) {
             <div>
                 <CardTitle className="text-lg">{decision.context}</CardTitle>
                 <CardDescription>
-                {format(parseISO(decision.date), "MMMM d, yyyy 'at' h:mm a")}
+                {format(parseISO(decision.date), "d 'de' MMMM, yyyy 'às' h:mm a", { locale: ptBR })}
                 </CardDescription>
             </div>
             <Badge variant="secondary">{decision.type}</Badge>
         </div>
       </CardHeader>
       <CardContent>
-        {decision.type === 'Yes/No' && <p>Your choice: <span className="font-semibold">{decision.decision}</span></p>}
-        {decision.type === 'Multiple Choice' && <p>Your choice: <span className="font-semibold">{decision.decision}</span></p>}
-        {decision.type === 'Financial Spending' && <p>Your choice: <span className="font-semibold">{decision.decision}</span></p>}
+        {decision.type === 'Yes/No' && <p>Sua escolha: <span className="font-semibold">{decision.decision}</span></p>}
+        {decision.type === 'Multiple Choice' && <p>Sua escolha: <span className="font-semibold">{decision.decision}</span></p>}
+        {decision.type === 'Financial Spending' && <p>Sua escolha: <span className="font-semibold">{decision.decision}</span></p>}
         {decision.type === 'Financial Analysis' && (
             <div className='text-sm text-muted-foreground'>
-                <p>Fixed Cost: ${decision.fixedCost.toLocaleString()}</p>
-                <p>Variable Cost: ${decision.variableCost.toLocaleString()}</p>
+                <p>Custo Fixo: R$ {decision.fixedCost.toLocaleString('pt-BR')}</p>
+                <p>Custo Variável: R$ {decision.variableCost.toLocaleString('pt-BR')}</p>
             </div>
         )}
       </CardContent>
       {(decision.type === 'Multiple Choice' || decision.type === 'Financial Spending') && decision.options.length > 0 && (
         <CardFooter>
             <div className="text-sm">
-                <p className="font-medium">Options considered:</p>
+                <p className="font-medium">Opções consideradas:</p>
                 <ul className="list-disc list-inside text-muted-foreground">
                     {decision.options.map((opt, i) => <li key={i}>{opt}</li>)}
                 </ul>
@@ -85,18 +86,18 @@ export function DecisionHistoryList() {
             <div className="flex justify-end">
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="destructive">Clear History</Button>
+                        <Button variant="destructive">Limpar Histórico</Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This will permanently delete your entire decision history. This action cannot be undone.
+                            Isso excluirá permanentemente todo o seu histórico de decisões. Esta ação não pode ser desfeita.
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={clearHistory}>Continue</AlertDialogAction>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={clearHistory}>Continuar</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -105,8 +106,8 @@ export function DecisionHistoryList() {
       {history.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
-            <h3 className="text-lg font-medium">No decisions yet!</h3>
-            <p className="text-muted-foreground">Start using the tools and your decisions will appear here.</p>
+            <h3 className="text-lg font-medium">Nenhuma decisão ainda!</h3>
+            <p className="text-muted-foreground">Comece a usar as ferramentas e suas decisões aparecerão aqui.</p>
           </CardContent>
         </Card>
       ) : (

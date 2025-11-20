@@ -23,8 +23,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const formSchema = z.object({
-  context: z.string().min(10, 'Please provide more context for the decision.'),
-  options: z.array(z.object({ value: z.string().min(1, 'Option cannot be empty.') })).min(2, 'Please provide at least two options.'),
+  context: z.string().min(10, 'Por favor, forneça mais contexto para a decisão.'),
+  options: z.array(z.object({ value: z.string().min(1, 'A opção não pode estar vazia.') })).min(2, 'Por favor, forneça pelo menos duas opções.'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -34,7 +34,7 @@ function SubmitButton() {
   return (
     <Button type="submit" disabled={pending}>
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Get AI Advice
+      Obter Conselho da IA
     </Button>
   );
 }
@@ -79,8 +79,8 @@ export function MultipleChoiceForm() {
       decision,
     });
     toast({
-      title: 'Decision Saved',
-      description: `You chose "${decision}" for: ${context.substring(0, 30)}...`,
+      title: 'Decisão Salva',
+      description: `Você escolheu "${decision}" para: ${context.substring(0, 30)}...`,
     });
     form.reset();
   };
@@ -102,8 +102,8 @@ export function MultipleChoiceForm() {
       <form onSubmit={form.handleSubmit(customAction)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Your Decision</CardTitle>
-            <CardDescription>Describe the context and the choices you are considering.</CardDescription>
+            <CardTitle>Sua Decisão</CardTitle>
+            <CardDescription>Descreva o contexto e as opções que você está considerando.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -111,16 +111,16 @@ export function MultipleChoiceForm() {
               name="context"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Decision Context</FormLabel>
+                  <FormLabel>Contexto da Decisão</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="e.g., Which laptop should I buy for my new job?" {...field} />
+                    <Textarea placeholder="Ex: Qual laptop devo comprar para o meu novo trabalho?" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <div>
-              <FormLabel>Options</FormLabel>
+              <FormLabel>Opções</FormLabel>
               <div className="space-y-2 mt-2">
                 {fields.map((field, index) => (
                   <FormField
@@ -131,7 +131,7 @@ export function MultipleChoiceForm() {
                       <FormItem>
                         <div className="flex items-center gap-2">
                           <FormControl>
-                            <Input placeholder={`Option ${index + 1}`} {...field} />
+                            <Input placeholder={`Opção ${index + 1}`} {...field} />
                           </FormControl>
                           <Button
                             type="button"
@@ -151,14 +151,14 @@ export function MultipleChoiceForm() {
               </div>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={() => append({ value: '' })}>
-              <Plus className="mr-2 h-4 w-4" /> Add Option
+              <Plus className="mr-2 h-4 w-4" /> Adicionar Opção
             </Button>
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row justify-between gap-4 items-stretch sm:items-center">
             <SubmitButton />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={isFormInvalid}>Make a Decision</Button>
+                <Button variant="outline" disabled={isFormInvalid}>Tomar uma Decisão</Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 {currentOptions.map((option, index) => (

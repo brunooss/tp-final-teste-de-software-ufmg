@@ -16,7 +16,7 @@ export function useDecisionHistory() {
         setHistory(JSON.parse(storedHistory));
       }
     } catch (error) {
-      console.error('Failed to load decision history from localStorage', error);
+      console.error('Falha ao carregar o histórico de decisões do localStorage', error);
     }
     setIsLoaded(true);
   }, []);
@@ -33,7 +33,7 @@ export function useDecisionHistory() {
       try {
         localStorage.setItem(HISTORY_KEY, JSON.stringify(updatedHistory));
       } catch (error) {
-        console.error('Failed to save decision to localStorage', error);
+        console.error('Falha ao salvar a decisão no localStorage', error);
       }
       return updatedHistory;
     });
@@ -44,7 +44,7 @@ export function useDecisionHistory() {
     try {
       localStorage.removeItem(HISTORY_KEY);
     } catch (error) {
-      console.error('Failed to clear history from localStorage', error);
+      console.error('Falha ao limpar o histórico do localStorage', error);
     }
   }, []);
 

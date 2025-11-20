@@ -16,7 +16,7 @@ import { AiAdviceCard } from './ai-advice-card';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
-  context: z.string().min(10, 'Please provide more context for the decision.'),
+  context: z.string().min(10, 'Por favor, forneça mais contexto para a decisão.'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -26,7 +26,7 @@ function SubmitButton() {
   return (
     <Button type="submit" disabled={pending}>
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Get AI Advice
+      Obter Conselho da IA
     </Button>
   );
 }
@@ -48,13 +48,13 @@ export function YesNoForm() {
     if (state.error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
+        title: 'Erro',
         description: state.error,
       });
     }
   }, [state.error, toast]);
 
-  const handleDecision = (decision: 'Yes' | 'No') => {
+  const handleDecision = (decision: 'Sim' | 'Não') => {
     const { context } = form.getValues();
     if (!context) {
       form.trigger('context');
@@ -64,8 +64,8 @@ export function YesNoForm() {
     
     addDecision({ type: 'Yes/No', context, decision });
     toast({
-      title: 'Decision Saved',
-      description: `You decided "${decision}" for: ${context.substring(0, 30)}...`,
+      title: 'Decisão Salva',
+      description: `Você decidiu "${decision}" para: ${context.substring(0, 30)}...`,
     });
     form.reset();
   };
@@ -83,8 +83,8 @@ export function YesNoForm() {
       <form onSubmit={form.handleSubmit(customAction)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Your Decision</CardTitle>
-            <CardDescription>Describe the decision you're trying to make.</CardDescription>
+            <CardTitle>Sua Decisão</CardTitle>
+            <CardDescription>Descreva a decisão que você está tentando tomar.</CardDescription>
           </CardHeader>
           <CardContent>
               <FormField
@@ -92,10 +92,10 @@ export function YesNoForm() {
                 name="context"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Decision Context</FormLabel>
+                    <FormLabel>Contexto da Decisão</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="e.g., Should I accept the new job offer in another city?"
+                        placeholder="Ex: Devo aceitar a nova oferta de emprego em outra cidade?"
                         rows={4}
                         {...field}
                       />
@@ -108,11 +108,11 @@ export function YesNoForm() {
           <CardFooter className="flex flex-col sm:flex-row justify-between gap-4 items-stretch sm:items-center">
             <SubmitButton />
             <div className="flex gap-2">
-              <Button variant="outline" type="button" onClick={() => handleDecision('Yes')} className="flex-1" disabled={isFormInvalid}>
-                Decide 'Yes'
+              <Button variant="outline" type="button" onClick={() => handleDecision('Sim')} className="flex-1" disabled={isFormInvalid}>
+                Decidir 'Sim'
               </Button>
-              <Button variant="outline" type="button" onClick={() => handleDecision('No')} className="flex-1" disabled={isFormInvalid}>
-                Decide 'No'
+              <Button variant="outline" type="button" onClick={() => handleDecision('Não')} className="flex-1" disabled={isFormInvalid}>
+                Decidir 'Não'
               </Button>
             </div>
           </CardFooter>
