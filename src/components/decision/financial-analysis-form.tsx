@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
+import { useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +13,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 
@@ -41,10 +41,9 @@ function SubmitButton() {
 }
 
 export function FinancialAnalysisForm() {
-  const [state, formAction] = useFormState(getFinancialWeightsAction, { suggestions: null, error: null });
+  const [state, formAction, isPending] = useActionState(getFinancialWeightsAction, { suggestions: null, error: null });
   const { addDecision } = useDecisionHistory();
   const { toast } = useToast();
-  const { pending } = useFormStatus();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -84,16 +83,9 @@ export function FinancialAnalysisForm() {
     state.suggestions = null;
   };
 
-  const customAction = (formData: FormData) => {
-    const newFormData = new FormData();
-    newFormData.append('context', formData.context);
-    // The other fields are not needed by the action.
-    formAction(newFormData);
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(customAction)} className="space-y-6">
+      <form action={formAction} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Contexto Financeiro</CardTitle>
@@ -150,7 +142,7 @@ export function FinancialAnalysisForm() {
           </CardFooter>
         </Card>
         
-        {pending && (
+        {isPending && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold font-headline">Cenários Gerados por IA</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

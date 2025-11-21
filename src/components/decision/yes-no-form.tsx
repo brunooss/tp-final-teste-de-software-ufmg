@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
+import { useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +12,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
 import { AiAdviceCard } from './ai-advice-card';
 import { Loader2 } from 'lucide-react';
 
@@ -32,10 +32,9 @@ function SubmitButton() {
 }
 
 export function YesNoForm() {
-  const [state, formAction] = useFormState(getYesNoAdviceAction, { advice: null, error: null });
+  const [state, formAction, isPending] = useActionState(getYesNoAdviceAction, { advice: null, error: null });
   const { addDecision } = useDecisionHistory();
   const { toast } = useToast();
-  const { pending } = useFormStatus();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -73,16 +72,10 @@ export function YesNoForm() {
   };
   
   const isFormInvalid = !form.formState.isValid;
-  
-  const customAction = (formData: FormData) => {
-    const newFormData = new FormData();
-    newFormData.append('context', formData.context);
-    formAction(newFormData);
-  }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(customAction)} className="space-y-6">
+      <form action={formAction} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Sua Decisão</CardTitle>
@@ -120,7 +113,7 @@ export function YesNoForm() {
           </CardFooter>
         </Card>
         
-        <AiAdviceCard advice={state.advice} isLoading={pending} />
+        <AiAdviceCard advice={state.advice} isLoading={isPending} />
       </form>
     </Form>
   );

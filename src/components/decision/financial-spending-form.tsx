@@ -1,7 +1,8 @@
 'use client';
 
 import { useForm, useWatch } from 'react-hook-form';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect, useMemo } from 'react';
+import { useFormStatus } from 'react-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDecisionHistory } from '@/hooks/use-decision-history';
@@ -18,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useEffect, useMemo } from 'react';
 import { getFinancialSpendingAdviceAction } from '@/app/actions';
 import { AiAdviceCard } from './ai-advice-card';
 import { Loader2 } from 'lucide-react';
@@ -51,10 +51,9 @@ function SubmitButton() {
 }
 
 export function FinancialSpendingForm() {
-  const [state, formAction] = useFormState(getFinancialSpendingAdviceAction, { advice: null, error: null });
+  const [state, formAction, isPending] = useActionState(getFinancialSpendingAdviceAction, { advice: null, error: null });
   const { addDecision } = useDecisionHistory();
   const { toast } = useToast();
-  const { pending } = useFormStatus();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -122,23 +121,11 @@ export function FinancialSpendingForm() {
     });
     state.advice = null;
   };
-
-  const customAction = (formData: FormData) => {
-    const newFormData = new FormData();
-    newFormData.append('context', formData.context);
-    Object.keys(formData.financing).forEach(key => {
-        newFormData.append(`financing.${key}`, String(formData.financing[key as keyof typeof formData.financing]));
-    });
-    Object.keys(formData.consortium).forEach(key => {
-        newFormData.append(`consortium.${key}`, String(formData.consortium[key as keyof typeof formData.consortium]));
-    });
-    formAction(newFormData);
-  };
   
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(customAction)} className="space-y-6">
+      <form action={formAction} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Sua Decisão</CardTitle>
@@ -249,7 +236,7 @@ export function FinancialSpendingForm() {
           </CardFooter>
         </Card>
         
-        <AiAdviceCard advice={state.advice} isLoading={pending} />
+        <AiAdviceCard advice={state.advice} isLoading={isPending} />
       </form>
     </Form>
   );

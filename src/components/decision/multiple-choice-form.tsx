@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
+import { useFormStatus } from 'react-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +13,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect } from 'react';
 import { AiAdviceCard } from './ai-advice-card';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import {
@@ -43,10 +43,9 @@ function SubmitButton() {
 }
 
 export function MultipleChoiceForm() {
-  const [state, formAction] = useFormState(getMultipleChoiceAdviceAction, { advice: null, error: null });
+  const [state, formAction, isPending] = useActionState(getMultipleChoiceAdviceAction, { advice: null, error: null });
   const { addDecision } = useDecisionHistory();
   const { toast } = useToast();
-  const { pending } = useFormStatus();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -92,19 +91,9 @@ export function MultipleChoiceForm() {
   const isFormInvalid = !form.formState.isValid;
   const currentOptions = form.watch('options');
 
-  const customAction = (formData: FormData) => {
-    const newFormData = new FormData();
-    newFormData.append('context', formData.context);
-    formData.options.forEach(option => {
-      newFormData.append('options.value', option.value);
-      newFormData.append('options.description', option.description || '');
-    });
-    formAction(newFormData);
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(customAction)} className="space-y-6">
+      <form action={formAction} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Sua Decisão</CardTitle>
@@ -191,7 +180,7 @@ export function MultipleChoiceForm() {
           </CardFooter>
         </Card>
         
-        <AiAdviceCard advice={state.advice} isLoading={pending} />
+        <AiAdviceCard advice={state.advice} isLoading={isPending} />
       </form>
     </Form>
   );
