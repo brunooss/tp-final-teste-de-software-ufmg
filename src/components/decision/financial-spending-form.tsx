@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDecisionHistory } from '@/hooks/use-decision-history';
@@ -10,17 +10,27 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const formSchema = z.object({
   context: z.string().min(10, 'Por favor, forneça mais contexto para a decisão.'),
-  options: z.array(z.object({ value: z.string().min(1, 'A opção não pode estar vazia.') })).min(2, 'Por favor, forneça pelo menos duas opções.'),
+  financing: z.object({
+    totalValue: z.coerce.number().min(0, 'O valor total deve ser positivo.'),
+    downPayment: z.coerce.number().min(0, 'A entrada deve ser positiva.'),
+    interestRate: z.coerce.number().min(0, 'A taxa de juros deve ser positiva.'),
+    installments: z.coerce.number().int().min(1, 'O número de parcelas deve ser pelo menos 1.'),
+  }),
+  consortium: z.object({
+    totalValue: z.coerce.number().min(0, 'O valor total deve ser positivo.'),
+    adminFee: z.coerce.number().min(0, 'A taxa de administração deve ser positiva.'),
+    installments: z.coerce.number().int().min(1, 'O número de parcelas deve ser pelo menos 1.'),
+  }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -34,42 +44,38 @@ export function FinancialSpendingForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       context: 'Aquisição de carro',
-      options: [{ value: 'Financiamento' }, { value: 'Consórcio' }],
+      financing: {
+        totalValue: 50000,
+        downPayment: 10000,
+        interestRate: 1.5,
+        installments: 48,
+      },
+      consortium: {
+        totalValue: 50000,
+        adminFee: 15,
+        installments: 60,
+      }
     },
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'options',
   });
   
   const handleDecision = (decision: string) => {
-    const { context, options } = form.getValues();
-    if (!decision) return;
+    const { context } = form.getValues();
     
     addDecision({
       type: 'Financial Spending',
       context,
-      options: options.map(o => o.value),
+      options: ['Financiamento', 'Consórcio'],
       decision,
     });
     toast({
       title: 'Decisão Salva',
       description: `Você escolheu "${decision}" para: ${context.substring(0, 30)}...`,
     });
-    form.reset({
-      context: 'Aquisição de carro',
-      options: [{ value: 'Financiamento' }, { value: 'Consórcio' }],
-    });
   };
   
   const onSubmit = () => {
-    // Este formulário não envia para uma ação, ele apenas habilita o dropdown de decisão.
-    // O próprio dropdown lida com o salvamento da decisão.
+    // A lógica de decisão está no handleDecision
   };
-
-  const isFormInvalid = !form.formState.isValid;
-  const currentOptions = form.watch('options');
 
   return (
     <Form {...form}>
@@ -87,58 +93,89 @@ export function FinancialSpendingForm() {
                 <FormItem>
                   <FormLabel>Contexto da Decisão</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Ex: Qual laptop devo comprar para o meu novo trabalho?" {...field} />
+                    <Textarea placeholder="Ex: Comprar um carro novo." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div>
-              <FormLabel>Opções</FormLabel>
-              <div className="space-y-2 mt-2">
-                {fields.map((field, index) => (
-                  <FormField
-                    key={field.id}
-                    control={form.control}
-                    name={`options.${index}.value`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center gap-2">
-                          <FormControl>
-                            <Input placeholder={`Opção ${index + 1}`} {...field} />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => remove(index)}
-                            disabled={fields.length <= 2}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => append({ value: '' })}>
-              <Plus className="mr-2 h-4 w-4" /> Adicionar Opção
-            </Button>
+            <Tabs defaultValue="financing" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="financing">Financiamento</TabsTrigger>
+                <TabsTrigger value="consortium">Consórcio</TabsTrigger>
+              </TabsList>
+              <TabsContent value="financing">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <FormField control={form.control} name="financing.totalValue" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Valor Total do Bem</FormLabel>
+                            <FormControl><Input type="number" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="financing.downPayment" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Valor da Entrada</FormLabel>
+                            <FormControl><Input type="number" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="financing.interestRate" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Taxa de Juros (% a.m.)</FormLabel>
+                            <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="financing.installments" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Número de Parcelas</FormLabel>
+                            <FormControl><Input type="number" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                </div>
+              </TabsContent>
+              <TabsContent value="consortium">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <FormField control={form.control} name="consortium.totalValue" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Valor Total da Carta</FormLabel>
+                            <FormControl><Input type="number" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="consortium.adminFee" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Taxa de Administração (%)</FormLabel>
+                            <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="consortium.installments" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Número de Parcelas</FormLabel>
+                            <FormControl><Input type="number" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                </div>
+              </TabsContent>
+            </Tabs>
+
           </CardContent>
           <CardFooter className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="default" disabled={isFormInvalid}>Tomar uma Decisão</Button>
+                <Button variant="default" disabled={!form.formState.isValid}>Tomar uma Decisão</Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {currentOptions.map((option, index) => (
-                   option.value && <DropdownMenuItem key={index} onSelect={() => handleDecision(option.value)}>
-                    {option.value}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem onSelect={() => handleDecision('Financiamento')}>
+                    Financiamento
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleDecision('Consórcio')}>
+                    Consórcio
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </CardFooter>
