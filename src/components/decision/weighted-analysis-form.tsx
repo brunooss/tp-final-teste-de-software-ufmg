@@ -81,7 +81,7 @@ export function WeightedAnalysisForm() {
   const watchedOptions = useWatch({ control: form.control, name: 'options' });
 
   const totalWeight = useMemo(() => {
-    return watchedCriteria.reduce((sum, crit) => sum + (crit.weight || 0), 0);
+    return watchedCriteria.reduce((sum, crit) => sum + (Number(crit.weight) || 0), 0);
   }, [watchedCriteria]);
 
   const finalScores = useMemo(() => {
