@@ -49,7 +49,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight font-headline">Dashboard</h1>
         <p className="text-muted-foreground">
-          Bem-vindo ao Bússola da Clareza. Comece selecionando uma ferramenta abaixo.
+          Bem-vindo ao DataDiver. Comece selecionando uma ferramenta abaixo.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -4,8 +4,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'Bússola da Clareza',
-  description: 'Um aplicativo intuitivo para organizar seus pensamentos e tomar decisões.',
+  title: 'DataDiver',
+  description: 'Um aplicativo poderoso para decisões orientadas por dados.',
 };
 
 export default function RootLayout({

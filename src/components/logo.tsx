@@ -9,7 +9,7 @@ export function Logo({ className }: LogoProps) {
   return (
     <div className={cn('flex items-center gap-2 text-lg font-medium', className)}>
       <Compass className="h-6 w-6 text-primary" />
-      <span className="font-headline">Bússola da Clareza</span>
+      <span className="font-headline">DataDiver</span>
     </div>
   );
 }

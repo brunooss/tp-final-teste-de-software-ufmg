@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Decision } from '@/lib/types';
 
-const HISTORY_KEY = 'clarity-compass-decision-history';
+const HISTORY_KEY = 'datadiver-decision-history';
 
 export function useDecisionHistory() {
   const [history, setHistory] = useState<Decision[]>([]);
