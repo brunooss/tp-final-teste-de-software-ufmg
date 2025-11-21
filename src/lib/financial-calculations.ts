@@ -26,17 +26,26 @@ export type Option = {
   scores: Record<string, number>;
 };
 
-export function calculateFinancingTotal({ totalValue, downPayment, interestRate, installments }: FinancingDetails): number {
+export function calculateFinancingMonthlyPayment({ totalValue, downPayment, interestRate, installments }: FinancingDetails): number {
     if (interestRate === 0) {
-        return totalValue;
+        return (totalValue - downPayment) / installments;
     }
     const principal = totalValue - downPayment;
     const monthlyRate = interestRate / 100;
-    if (principal <= 0) return downPayment;
+    if (principal <= 0) return 0;
+    if (installments === 0) return principal;
 
     // Formula de pagamento mensal (Tabela Price)
     // M = P * [r(1+r)^n] / [(1+r)^n - 1]
     const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, installments)) / (Math.pow(1 + monthlyRate, installments) - 1);
+    return isNaN(monthlyPayment) ? 0 : monthlyPayment;
+}
+
+export function calculateFinancingTotal({ totalValue, downPayment, interestRate, installments }: FinancingDetails): number {
+    if (downPayment >= totalValue) {
+        return totalValue;
+    }
+    const monthlyPayment = calculateFinancingMonthlyPayment({ totalValue, downPayment, interestRate, installments });
     const totalPaid = downPayment + (monthlyPayment * installments);
     return isNaN(totalPaid) ? 0 : totalPaid;
 }
@@ -45,6 +54,14 @@ export function calculateConsortiumTotal({ totalValue, adminFee }: ConsortiumDet
     const total = totalValue * (1 + adminFee / 100);
     return isNaN(total) ? 0 : total;
 }
+
+export function calculateConsortiumMonthlyPayment({ totalValue, adminFee, installments }: ConsortiumDetails): number {
+    if (installments === 0) return 0;
+    const totalCost = calculateConsortiumTotal({ totalValue, adminFee, installments });
+    const monthlyPayment = totalCost / installments;
+    return isNaN(monthlyPayment) ? 0 : monthlyPayment;
+}
+
 
 export function calculateWeightedScores({ criteria, options }: { criteria: Criterion[], options: Option[] }) {
     if (!criteria || !options) return [];

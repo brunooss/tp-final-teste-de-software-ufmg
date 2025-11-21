@@ -5,7 +5,7 @@ import { getYesNoDecisionAdvice, type YesNoDecisionAdviceInput } from '@/ai/flow
 import { getMultipleChoiceDecisionAdvice, type MultipleChoiceDecisionAdviceInput } from '@/ai/flows/multiple-choice-decision-advice';
 import { suggestFinancialWeights, type FinancialWeightInput } from '@/ai/flows/financial-decision-weight-suggestion';
 import { getFinancialSpendingAdvice, type FinancialSpendingAdviceInput } from '@/ai/flows/financial-spending-advice';
-import { calculateConsortiumTotal, calculateFinancingTotal } from '@/lib/financial-calculations';
+import { calculateConsortiumMonthlyPayment, calculateConsortiumTotal, calculateFinancingMonthlyPayment, calculateFinancingTotal } from '@/lib/financial-calculations';
 import type { YesNoDecision, MultipleChoiceDecision, FinancialSpendingDecision, FinancialAnalysisDecision, WeightedAnalysisDecision } from '@/lib/types';
 import { getWeightedDecisionSuggestions, type WeightedDecisionSuggestionsInput } from '@/ai/flows/weighted-decision-advice';
 
@@ -141,7 +141,29 @@ export async function handleFinancialSpendingAdvice(data: unknown) {
     return { error: 'Dados inválidos. Por favor, verifique os campos.' };
   }
   try {
-    const result = await getFinancialSpendingAdvice(validation.data as FinancialSpendingAdviceInput);
+    const inputData = validation.data;
+    
+    // Perform calculations before calling AI
+    const financingTotal = calculateFinancingTotal(inputData.financing);
+    const financingMonthly = calculateFinancingMonthlyPayment(inputData.financing);
+    const consortiumTotal = calculateConsortiumTotal(inputData.consortium);
+    const consortiumMonthly = calculateConsortiumMonthlyPayment(inputData.consortium);
+
+    const aiInput: FinancialSpendingAdviceInput = {
+      ...inputData,
+      financing: {
+        ...inputData.financing,
+        totalCost: financingTotal,
+        monthlyPayment: financingMonthly,
+      },
+      consortium: {
+        ...inputData.consortium,
+        totalCost: consortiumTotal,
+        monthlyPayment: consortiumMonthly,
+      },
+    };
+
+    const result = await getFinancialSpendingAdvice(aiInput);
     return { advice: result.advice };
   } catch (e) {
     console.error(e);
