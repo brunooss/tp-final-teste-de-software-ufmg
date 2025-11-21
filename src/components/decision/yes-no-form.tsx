@@ -68,6 +68,8 @@ export function YesNoForm() {
       description: `Você decidiu "${decision}" para: ${context.substring(0, 30)}...`,
     });
     form.reset();
+    // Clear advice when a decision is made
+    state.advice = null;
   };
   
   const isFormInvalid = !form.formState.isValid;

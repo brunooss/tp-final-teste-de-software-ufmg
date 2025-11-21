@@ -86,6 +86,7 @@ export function MultipleChoiceForm() {
       description: `Você escolheu "${decision}" para: ${context.substring(0, 30)}...`,
     });
     form.reset();
+    state.advice = null;
   };
 
   const isFormInvalid = !form.formState.isValid;

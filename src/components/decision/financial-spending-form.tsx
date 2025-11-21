@@ -120,6 +120,7 @@ export function FinancialSpendingForm() {
       title: 'Decisão Salva',
       description: `Você escolheu "${decision}" para: ${context.substring(0, 30)}...`,
     });
+    state.advice = null;
   };
 
   const customAction = (formData: FormData) => {

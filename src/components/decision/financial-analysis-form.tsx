@@ -81,6 +81,7 @@ export function FinancialAnalysisForm() {
       description: `Análise salva para: ${context.substring(0, 30)}...`,
     });
     form.reset();
+    state.suggestions = null;
   };
 
   const customAction = (formData: FormData) => {
