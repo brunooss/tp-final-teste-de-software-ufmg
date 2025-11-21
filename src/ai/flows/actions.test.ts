@@ -1,64 +1,89 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as actions from '../../app/actions';
-import * as yesNoFlow from './yes-no-decision-advice';
-import * as multipleChoiceFlow from './multiple-choice-decision-advice';
+import * as yesNo from '../../lib/yes-no';
+import * as multipleChoice from '../../lib/multiple-choice';
+import * as weightedAnalysis from '../../lib/weighted-analysis';
 import * as financialWeightFlow from './financial-decision-weight-suggestion';
 import * as financialSpendingFlow from './financial-spending-advice';
-import * as weightedSuggestionsFlow from './weighted-decision-advice';
 
-// Mock AI flows
-vi.mock('./yes-no-decision-advice');
-vi.mock('./multiple-choice-decision-advice');
+// Mock lib functions
+vi.mock('../../lib/yes-no');
+vi.mock('../../lib/multiple-choice');
+vi.mock('../../lib/weighted-analysis');
+
+// Mock AI flows that are still directly called by actions.ts
 vi.mock('./financial-decision-weight-suggestion');
 vi.mock('./financial-spending-advice');
-vi.mock('./weighted-decision-advice');
-
 
 describe('Server Actions Logic (actions.ts)', () => {
 
-  // --- GET ADVICE HANDLERS ---
+  // --- ACTION -> LIB FUNCTION MAPPING ---
 
-  describe('handleYesNoAdvice', () => {
-    it('should return advice for valid input', async () => {
-      const mockAdvice = 'Yes';
-      vi.mocked(yesNoFlow.getYesNoDecisionAdvice).mockResolvedValue({ advice: mockAdvice });
-      const result = await actions.handleYesNoAdvice({ context: 'Should I learn Vitest?' });
-      expect(result).toEqual({ advice: mockAdvice });
-    });
-
-    // it('should return an error for invalid input', async () => {
-    //   const result = await actions.handleYesNoAdvice({ context: 'short' });
-    //   expect(result.error).toBeDefined();
-    // });
-  });
-
-  describe('handleMultipleChoiceAdvice', () => {
-    it('should return advice for valid input', async () => {
-        const mockAdvice = 'Choose option B.';
-        vi.mocked(multipleChoiceFlow.getMultipleChoiceDecisionAdvice).mockResolvedValue({ advice: mockAdvice });
-
-        const input = {
-            context: 'Which testing library is best?',
-            options: [{ value: 'A' }, { value: 'B' }]
-        };
-        const result = await actions.handleMultipleChoiceAdvice(input);
-        expect(result).toEqual({ advice: mockAdvice });
-    });
-
-    it('should return an error for invalid input', async () => {
-        const input = { context: 'test', options: [] };
-        const result = await actions.handleMultipleChoiceAdvice(input);
-        expect(result.error).toBeDefined();
+  describe('getYesNoAdviceAction', () => {
+    it('should call handleYesNoAdvice with form data', async () => {
+      const formData = new FormData();
+      formData.append('context', 'test context');
+      vi.mocked(yesNo.handleYesNoAdvice).mockResolvedValue({ advice: 'test advice' });
+      
+      await actions.getYesNoAdviceAction(null, formData);
+      
+      expect(yesNo.handleYesNoAdvice).toHaveBeenCalledWith({ context: 'test context' });
     });
   });
+
+  describe('getMultipleChoiceAdviceAction', () => {
+    it('should call handleMultipleChoiceAdvice with form data', async () => {
+      const formData = new FormData();
+      formData.append('context', 'test context');
+      formData.append('options.value', 'A');
+      formData.append('options.description', 'Desc A');
+      formData.append('options.value', 'B');
+      formData.append('options.description', 'Desc B');
+      vi.mocked(multipleChoice.handleMultipleChoiceAdvice).mockResolvedValue({ advice: 'test advice' });
+
+      await actions.getMultipleChoiceAdviceAction(null, formData);
+
+      expect(multipleChoice.handleMultipleChoiceAdvice).toHaveBeenCalledWith({
+        context: 'test context',
+        options: [{ value: 'A', description: 'Desc A' }, { value: 'B', description: 'Desc B' }]
+      });
+    });
+  });
+  
+    describe('getWeightedSuggestionsAction', () => {
+    it('should call handleWeightedSuggestions with form data', async () => {
+      const formData = new FormData();
+      formData.append('context', 'test context');
+      formData.append('existingCriteria', JSON.stringify([{ name: 'C1', weight: 50 }]));
+      formData.append('existingOptions', JSON.stringify([{ name: 'O1', scores: {} }]));
+      vi.mocked(weightedAnalysis.handleWeightedSuggestions).mockResolvedValue({ suggestions: [] });
+
+      await actions.getWeightedSuggestionsAction(null, formData);
+
+      expect(weightedAnalysis.handleWeightedSuggestions).toHaveBeenCalledWith({
+        context: 'test context',
+        existingCriteria: [{ name: 'C1', weight: 50 }],
+        existingOptions: [{ name: 'O1', scores: {} }]
+      });
+    });
+  });
+
+
+  // --- DIRECTLY CALLED LOGIC (Still in actions.ts) ---
 
   describe('handleFinancialWeights', () => {
     it('should return suggestions for valid input', async () => {
       const mockSuggestions = [{ fixedCostWeight: 0.5, variableCostWeight: 0.5, rationale: 'Balanced' }];
       vi.mocked(financialWeightFlow.suggestFinancialWeights).mockResolvedValue({ suggestions: mockSuggestions });
-      const input = { context: 'Valid context here', fixedCost: 100, variableCost: 50 };
+      const input = { context: 'Valid context here for finance', fixedCost: 100, variableCost: 50 };
       const result = await actions.handleFinancialWeights(input);
       expect(result).toEqual({ suggestions: mockSuggestions });
+    });
+
+    it('should return a validation error for invalid context', async () => {
+       const input = { context: 'short', fixedCost: 100, variableCost: 50 };
+       const result = await actions.handleFinancialWeights(input);
+       expect(result.error).toBeDefined();
     });
   });
 
@@ -74,62 +99,16 @@ describe('Server Actions Logic (actions.ts)', () => {
         };
         const result = await actions.handleFinancialSpendingAdvice(input);
         expect(result).toEqual({ advice: mockAdvice });
-        // Check if the flow was called with calculated values
         expect(vi.mocked(financialSpendingFlow.getFinancialSpendingAdvice).mock.calls[0][0].financing).toHaveProperty('totalCost');
         expect(vi.mocked(financialSpendingFlow.getFinancialSpendingAdvice).mock.calls[0][0].consortium).toHaveProperty('totalCost');
     });
   });
-  
-  describe('handleWeightedSuggestions', () => {
-    it('should return suggestions for valid input', async () => {
-        const mockSuggestions = [{ name: 'Cost', weight: 50, rationale: 'It is important' }];
-        vi.mocked(weightedSuggestionsFlow.getWeightedDecisionSuggestions).mockResolvedValue({ suggestions: mockSuggestions });
-
-        const input = {
-            context: 'Choose a university',
-            existingCriteria: [],
-            existingOptions: []
-        };
-        const result = await actions.handleWeightedSuggestions(input);
-        expect(result).toEqual({ suggestions: mockSuggestions });
-    });
-  });
-
 
   // --- SAVE DECISION HANDLERS ---
-
-  describe('handleSaveYesNoDecision', () => {
-    it('should return a structured decision object for valid input', async () => {
-      const input = { context: 'A valid decision context', decision: 'Sim' as const };
-      const result = await actions.handleSaveYesNoDecision(input);
-      expect(result.decision?.type).toBe('Yes/No');
-      expect(result.decision?.context).toBe(input.context);
-      expect(result.decision?.decision).toBe(input.decision);
-      expect(result.error).toBeUndefined();
-    });
-
-    it('should return an error for invalid data', async () => {
-        const input = { context: 'short', decision: 'Maybe' };
-        const result = await actions.handleSaveYesNoDecision(input);
-        expect(result.error).toBeDefined();
-        expect(result.decision).toBeUndefined();
-    });
-  });
   
-  describe('handleSaveMultipleChoiceDecision', () => {
-    it('should return a structured decision object', async () => {
-        const input = { context: 'Valid context', options: [{value: 'A'}, {value: 'B'}], decision: 'A' };
-        const result = await actions.handleSaveMultipleChoiceDecision(input);
-        expect(result.decision?.type).toBe('Multiple Choice');
-        expect(result.decision?.options).toEqual(['A', 'B']);
-        expect(result.decision?.decision).toBe('A');
-        expect(result.error).toBeUndefined();
-    });
-  });
-
   describe('handleSaveFinancialAnalysisDecision', () => {
     it('should return a structured decision object', async () => {
-        const input = { context: 'Valid context', fixedCost: 1000, variableCost: 50 };
+        const input = { context: 'Valid context for saving finance', fixedCost: 1000, variableCost: 50 };
         const result = await actions.handleSaveFinancialAnalysisDecision(input);
         expect(result.decision?.type).toBe('Financial Analysis');
         expect(result.decision?.fixedCost).toBe(1000);
@@ -146,20 +125,24 @@ describe('Server Actions Logic (actions.ts)', () => {
         expect(result.error).toBeUndefined();
     });
   });
+
+  // These now just pass through to the lib functions
+  it('saveYesNoDecisionAction calls handleSaveYesNoDecision', async () => {
+    const data = { context: 'test', decision: 'Sim' };
+    await actions.saveYesNoDecisionAction(data);
+    expect(yesNo.handleSaveYesNoDecision).toHaveBeenCalledWith(data);
+  });
   
-  describe('handleSaveWeightedAnalysisDecision', () => {
-    it('should return a structured decision object', async () => {
-        const input = {
-            context: 'Choose job',
-            criteria: [{ name: 'Salary', weight: 100 }],
-            options: [{ name: 'Job A', scores: { 'Salary': 10 } }],
-            decision: 'Job A'
-        };
-        const result = await actions.handleSaveWeightedAnalysisDecision(input);
-        expect(result.decision?.type).toBe('Weighted Analysis');
-        expect(result.decision?.decision).toBe('Job A');
-        expect(result.error).toBeUndefined();
-    });
+  it('saveMultipleChoiceDecisionAction calls handleSaveMultipleChoiceDecision', async () => {
+    const data = { context: 'test', options: [], decision: 'A' };
+    await actions.saveMultipleChoiceDecisionAction(data);
+    expect(multipleChoice.handleSaveMultipleChoiceDecision).toHaveBeenCalledWith(data);
+  });
+  
+  it('saveWeightedAnalysisAction calls handleSaveWeightedAnalysisDecision', async () => {
+    const data = { context: 'test', criteria: [], options: [], decision: 'A' };
+    await actions.saveWeightedAnalysisAction(data);
+    expect(weightedAnalysis.handleSaveWeightedAnalysisDecision).toHaveBeenCalledWith(data);
   });
 
 });

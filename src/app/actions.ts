@@ -3,9 +3,8 @@
 import { z } from 'zod';
 import { handleYesNoAdvice, handleSaveYesNoDecision } from '../lib/yes-no';
 import { handleMultipleChoiceAdvice, handleSaveMultipleChoiceDecision } from '../lib/multiple-choice';
+import { handleWeightedSuggestions, handleSaveWeightedAnalysisDecision } from '../lib/weighted-analysis';
 
-import { getYesNoDecisionAdvice, type YesNoDecisionAdviceInput } from '../ai/flows/yes-no-decision-advice';
-import { getMultipleChoiceDecisionAdvice, type MultipleChoiceDecisionAdviceInput } from '../ai/flows/multiple-choice-decision-advice';
 import { suggestFinancialWeights } from '../ai/flows/financial-decision-weight-suggestion';
 import { getFinancialSpendingAdvice, type FinancialSpendingAdviceInput } from '../ai/flows/financial-spending-advice';
 import { calculateConsortiumMonthlyPayment, calculateConsortiumTotal, calculateFinancingMonthlyPayment, calculateFinancingTotal } from '../lib/financial-calculations';
@@ -34,36 +33,12 @@ const financialSpendingSchema = z.object({
   }),
 });
 
-const criterionSchema = z.object({
-  name: z.string(),
-  weight: z.coerce.number(),
-});
-
-const optionSchema = z.object({
-  name: z.string(),
-  scores: z.record(z.string(), z.coerce.number()),
-});
-
-const weightedAnalysisSchema = z.object({
-  context: z.string().optional(),
-  existingCriteria: z.array(criterionSchema).optional(),
-  existingOptions: z.array(optionSchema).optional(),
-});
-
 // --- Tipos de Decisão para Salvar ---
 const saveFinancialSpendingDecisionSchema = z.object({
     context: z.string().min(1),
     options: z.array(z.string()),
     decision: z.string().min(1),
 });
-
-const saveWeightedAnalysisDecisionSchema = z.object({
-    context: z.string().optional(),
-    criteria: z.array(z.object({ name: z.string(), weight: z.number() })),
-    options: z.array(z.object({ name: z.string(), scores: z.record(z.string(), z.number()) })),
-    decision: z.string().min(1),
-});
-
 
 // --- Lógica Core Testável ---
 
@@ -135,20 +110,6 @@ export async function handleFinancialTotals(data: unknown) {
     }
 }
 
-export async function handleWeightedSuggestions(data: unknown) {
-  const validation = weightedAnalysisSchema.safeParse(data);
-  if (!validation.success) {
-    console.log(validation.error.flatten());
-    return { error: 'Os dados fornecidos para sugestão são inválidos.' };
-  }
-  try {
-    const result = await getWeightedDecisionSuggestions(validation.data as WeightedDecisionSuggestionsInput);
-    return { suggestions: result.suggestions };
-  } catch (e) {
-    console.error(e);
-    return { error: 'Falha ao obter sugestões da IA. Por favor, tente novamente.' };
-  }
-}
 
 // --- SAVE DECISION ---
 
@@ -180,21 +141,6 @@ export async function handleSaveFinancialSpendingDecision(data: unknown) {
     return { decision: decisionData };
 }
 
-export async function handleSaveWeightedAnalysisDecision(data: unknown) {
-    const validation = saveWeightedAnalysisDecisionSchema.safeParse(data);
-    if (!validation.success) {
-        console.error(validation.error.flatten())
-        return { error: 'Dados inválidos para salvar a decisão.' };
-    }
-    const decisionData: Omit<WeightedAnalysisDecision, 'id' | 'date'> = {
-        type: 'Weighted Analysis',
-        context: validation.data.context || 'Análise Ponderada',
-        criteria: validation.data.criteria,
-        options: validation.data.options,
-        decision: validation.data.decision,
-    };
-    return { decision: decisionData };
-}
 
 
 // --- Server Actions (Boundary) ---
