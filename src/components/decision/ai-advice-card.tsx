@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Lightbulb } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type AiAdviceCardProps = {
   advice?: string | null;
@@ -41,7 +42,7 @@ export function AiAdviceCard({ advice, isLoading }: AiAdviceCardProps) {
       </CardHeader>
       <CardContent>
         <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/80">
-          <ReactMarkdown>{advice}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{advice}</ReactMarkdown>
         </div>
       </CardContent>
     </Card>
