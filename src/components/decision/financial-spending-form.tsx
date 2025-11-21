@@ -1,7 +1,7 @@
 'use client';
 
 import { useForm, useWatch } from 'react-hook-form';
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useState, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { getFinancialSpendingAdviceAction, getFinancialTotalsAction } from '@/app/actions';
+import { getFinancialSpendingAdviceAction, getFinancialTotalsAction, saveFinancialSpendingAction } from '@/app/actions';
 import { AiAdviceCard } from './ai-advice-card';
 import { Loader2 } from 'lucide-react';
 import type { FinancialTotals } from '@/lib/financial-calculations';
@@ -51,10 +51,11 @@ function SubmitButton() {
 }
 
 export function FinancialSpendingForm() {
-  const [state, formAction, isPending] = useActionState(getFinancialSpendingAdviceAction, { advice: null, error: null });
+  const [adviceState, adviceAction, isAdvicePending] = useActionState(getFinancialSpendingAdviceAction, { advice: null, error: null });
   const { addDecision } = useDecisionHistory();
   const { toast } = useToast();
   const [totals, setTotals] = useState<FinancialTotals>({ financingTotal: 0, consortiumTotal: 0 });
+  const [isSaving, startSavingTransition] = useTransition();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -91,35 +92,43 @@ export function FinancialSpendingForm() {
 
   
   useEffect(() => {
-    if (state.error) {
+    if (adviceState.error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: state.error,
+        description: adviceState.error,
       });
     }
-  }, [state.error, toast]);
+  }, [adviceState.error, toast]);
   
   const handleDecision = (decision: string) => {
-    const { context } = form.getValues();
-    
-    addDecision({
-      type: 'Financial Spending',
-      context,
-      options: ['Financiamento', 'Consórcio'],
-      decision,
+    startSavingTransition(async () => {
+      const { context } = form.getValues();
+      const options = ['Financiamento', 'Consórcio'];
+      const result = await saveFinancialSpendingAction({ context, options, decision });
+
+      if (result.decision) {
+        addDecision(result.decision);
+        toast({
+          title: 'Decisão Salva',
+          description: `Você escolheu "${decision}" para: ${context.substring(0, 30)}...`,
+        });
+        adviceState.advice = null;
+      } else if (result.error) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao Salvar',
+          description: result.error,
+        });
+      }
     });
-    toast({
-      title: 'Decisão Salva',
-      description: `Você escolheu "${decision}" para: ${context.substring(0, 30)}...`,
-    });
-    state.advice = null;
   };
   
+  const isDecisionDisabled = isSaving || !form.formState.isValid;
 
   return (
     <Form {...form}>
-      <form action={formAction} className="space-y-6">
+      <form action={adviceAction} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Sua Decisão</CardTitle>
@@ -229,13 +238,16 @@ export function FinancialSpendingForm() {
                 <SubmitButton />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" disabled={!form.formState.isValid} className="w-full">Tomar uma Decisão</Button>
+                    <Button variant="outline" disabled={isDecisionDisabled} className="w-full">
+                       {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                       Tomar uma Decisão
+                    </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                    <DropdownMenuItem onSelect={() => handleDecision('Financiamento')}>
+                    <DropdownMenuItem onSelect={() => handleDecision('Financiamento')} disabled={isSaving}>
                         Financiamento
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleDecision('Consórcio')}>
+                    <DropdownMenuItem onSelect={() => handleDecision('Consórcio')} disabled={isSaving}>
                         Consórcio
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -243,7 +255,7 @@ export function FinancialSpendingForm() {
             </CardContent>
         </Card>
         
-        <AiAdviceCard advice={state.advice} isLoading={isPending} />
+        <AiAdviceCard advice={adviceState.advice} isLoading={isAdvicePending} />
       </form>
     </Form>
   );

@@ -6,8 +6,9 @@ import { getMultipleChoiceDecisionAdvice, type MultipleChoiceDecisionAdviceInput
 import { suggestFinancialWeights, type FinancialWeightInput } from '@/ai/flows/financial-decision-weight-suggestion';
 import { getFinancialSpendingAdvice, type FinancialSpendingAdviceInput } from '@/ai/flows/financial-spending-advice';
 import { calculateConsortiumTotal, calculateFinancingTotal } from '@/lib/financial-calculations';
+import type { YesNoDecision, MultipleChoiceDecision, FinancialSpendingDecision, FinancialAnalysisDecision } from '@/lib/types';
 
-// Schemas
+// --- Schemas ---
 const yesNoSchema = z.object({
   context: z.string().min(10, 'Por favor, forneça mais contexto para a decisão.'),
 });
@@ -24,10 +25,12 @@ const multipleChoiceSchema = z.object({
 
 const financialAnalysisSchema = z.object({
   context: z.string().min(10, 'Por favor, forneça mais contexto para a decisão financeira.'),
+  fixedCost: z.coerce.number().min(0),
+  variableCost: z.coerce.number().min(0),
 });
 
 const financialSpendingSchema = z.object({
-  context: z.string(),
+  context: z.string().min(1, 'Por favor, forneça o contexto da decisão.'),
   financing: z.object({
     totalValue: z.number(),
     downPayment: z.number(),
@@ -41,8 +44,26 @@ const financialSpendingSchema = z.object({
   }),
 });
 
-// --- Testable Core Logic ---
 
+// --- Tipos de Decisão para Salvar ---
+const saveYesNoDecisionSchema = yesNoSchema.extend({
+  decision: z.enum(['Sim', 'Não']),
+});
+
+const saveMultipleChoiceDecisionSchema = multipleChoiceSchema.extend({
+  decision: z.string().min(1),
+});
+
+const saveFinancialSpendingDecisionSchema = z.object({
+    context: z.string().min(1),
+    options: z.array(z.string()),
+    decision: z.string().min(1),
+});
+
+
+// --- Lógica Core Testável ---
+
+// --- GET ADVICE ---
 export async function handleYesNoAdvice(data: unknown) {
   const validation = yesNoSchema.safeParse(data);
   if (!validation.success) {
@@ -82,7 +103,7 @@ export async function handleFinancialWeights(data: unknown) {
     return { error: validation.error.flatten().fieldErrors.context?.[0] };
   }
   try {
-    const result = await suggestFinancialWeights(validation.data as FinancialWeightInput);
+    const result = await suggestFinancialWeights({context: validation.data.context});
     return { suggestions: result.suggestions };
   } catch (e) {
     console.error(e);
@@ -121,6 +142,64 @@ export async function handleFinancialTotals(data: unknown) {
     }
 }
 
+// --- SAVE DECISION ---
+
+export function handleSaveYesNoDecision(data: unknown) {
+    const validation = saveYesNoDecisionSchema.safeParse(data);
+    if (!validation.success) {
+        return { error: validation.error.flatten().fieldErrors.context?.[0] || 'Dados inválidos.' };
+    }
+    const decisionData: Omit<YesNoDecision, 'id' | 'date'> = {
+        type: 'Yes/No',
+        context: validation.data.context,
+        decision: validation.data.decision,
+    };
+    return { decision: decisionData };
+}
+
+export function handleSaveMultipleChoiceDecision(data: unknown) {
+    const validation = saveMultipleChoiceDecisionSchema.safeParse(data);
+    if (!validation.success) {
+        return { error: 'Dados inválidos para salvar a decisão.' };
+    }
+     const decisionData: Omit<MultipleChoiceDecision, 'id' | 'date'> = {
+        type: 'Multiple Choice',
+        context: validation.data.context,
+        options: validation.data.options.map(o => o.value),
+        decision: validation.data.decision,
+    };
+    return { decision: decisionData };
+}
+
+export function handleSaveFinancialAnalysisDecision(data: unknown) {
+    const validation = financialAnalysisSchema.safeParse(data);
+    if (!validation.success) {
+        return { error: 'Dados inválidos para salvar a análise.' };
+    }
+    const decisionData: Omit<FinancialAnalysisDecision, 'id' | 'date'> = {
+        type: 'Financial Analysis',
+        context: validation.data.context,
+        fixedCost: validation.data.fixedCost,
+        variableCost: validation.data.variableCost,
+    };
+    return { decision: decisionData };
+}
+
+export function handleSaveFinancialSpendingDecision(data: unknown) {
+    const validation = saveFinancialSpendingDecisionSchema.safeParse(data);
+    if (!validation.success) {
+        return { error: 'Dados inválidos para salvar a decisão.' };
+    }
+    const decisionData: Omit<FinancialSpendingDecision, 'id' | 'date'> = {
+        type: 'Financial Spending',
+        context: validation.data.context,
+        options: validation.data.options,
+        decision: validation.data.decision,
+    };
+    return { decision: decisionData };
+}
+
+
 // --- Server Actions (Boundary) ---
 
 export async function getYesNoAdviceAction(prevState: any, formData: FormData) {
@@ -146,7 +225,11 @@ export async function getMultipleChoiceAdviceAction(prevState: any, formData: Fo
 }
 
 export async function getFinancialWeightsAction(prevState: any, formData: FormData) {
-  const rawData = { context: formData.get('context') };
+  const rawData = { 
+    context: formData.get('context'),
+    fixedCost: Number(formData.get('fixedCost')),
+    variableCost: Number(formData.get('variableCost')),
+  };
   return handleFinancialWeights(rawData);
 }
 
@@ -172,4 +255,20 @@ export async function getFinancialSpendingAdviceAction(prevState: any, formData:
 
 export async function getFinancialTotalsAction(data: unknown) {
     return handleFinancialTotals(data);
+}
+
+export async function saveYesNoDecisionAction(data: unknown) {
+    return handleSaveYesNoDecision(data);
+}
+
+export async function saveMultipleChoiceDecisionAction(data: unknown) {
+    return handleSaveMultipleChoiceDecision(data);
+}
+
+export async function saveFinancialAnalysisAction(data: unknown) {
+    return handleSaveFinancialAnalysisDecision(data);
+}
+
+export async function saveFinancialSpendingAction(data: unknown) {
+    return handleSaveFinancialSpendingDecision(data);
 }

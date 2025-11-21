@@ -1,11 +1,11 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getFinancialWeightsAction } from '@/app/actions';
+import { getFinancialWeightsAction, saveFinancialAnalysisAction } from '@/app/actions';
 import { useDecisionHistory } from '@/hooks/use-decision-history';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,9 +43,10 @@ function SubmitButton() {
 }
 
 export function FinancialAnalysisForm() {
-  const [state, formAction, isPending] = useActionState(getFinancialWeightsAction, { suggestions: null, error: null });
+  const [weightState, weightAction, isWeightPending] = useActionState(getFinancialWeightsAction, { suggestions: null, error: null });
   const { addDecision } = useDecisionHistory();
   const { toast } = useToast();
+  const [isSaving, startSavingTransition] = useTransition();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -57,37 +58,46 @@ export function FinancialAnalysisForm() {
   });
 
   useEffect(() => {
-    if (state.error) {
+    if (weightState.error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: state.error,
+        description: weightState.error,
       });
     }
-  }, [state.error, toast]);
+  }, [weightState.error, toast]);
 
-  const handleSave = () => {
-    form.trigger();
-    if (!form.formState.isValid) return;
+  const handleSave = async () => {
+    const isFormValid = await form.trigger();
+    if (!isFormValid) return;
 
-    const { context, fixedCost, variableCost } = form.getValues();
-    addDecision({
-      type: 'Financial Analysis',
-      context,
-      fixedCost,
-      variableCost,
+    startSavingTransition(async () => {
+        const values = form.getValues();
+        const result = await saveFinancialAnalysisAction(values);
+
+        if (result.decision) {
+            addDecision(result.decision);
+            toast({
+                title: 'Análise Salva',
+                description: `Análise salva para: ${result.decision.context.substring(0, 30)}...`,
+            });
+            form.reset();
+            weightState.suggestions = null;
+        } else if (result.error) {
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao Salvar',
+                description: result.error,
+            });
+        }
     });
-    toast({
-      title: 'Análise Salva',
-      description: `Análise salva para: ${context.substring(0, 30)}...`,
-    });
-    form.reset();
-    state.suggestions = null;
   };
+
+  const isDecisionDisabled = isSaving || !form.formState.isValid;
 
   return (
     <Form {...form}>
-      <form action={formAction} className="space-y-6">
+      <form action={weightAction} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Contexto Financeiro</CardTitle>
@@ -138,13 +148,14 @@ export function FinancialAnalysisForm() {
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row justify-between gap-4 items-stretch sm:items-center">
             <SubmitButton />
-            <Button type="button" variant="outline" onClick={handleSave} disabled={!form.formState.isValid}>
+            <Button type="button" variant="outline" onClick={handleSave} disabled={isDecisionDisabled}>
+               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar Análise no Histórico
             </Button>
           </CardFooter>
         </Card>
         
-        {isPending && (
+        {isWeightPending && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold font-headline">Cenários Gerados por IA</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -163,11 +174,11 @@ export function FinancialAnalysisForm() {
           </div>
         )}
 
-        {state.suggestions && (
+        {weightState.suggestions && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold font-headline">Cenários Gerados por IA</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {state.suggestions.map((suggestion: Suggestion, index: number) => (
+              {weightState.suggestions.map((suggestion: Suggestion, index: number) => (
                 <Card key={index} className="bg-primary/10 border-primary/20">
                   <CardHeader>
                     <CardTitle className="text-primary">Cenário {index + 1}</CardTitle>

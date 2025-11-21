@@ -1,11 +1,11 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getMultipleChoiceAdviceAction } from '@/app/actions';
+import { getMultipleChoiceAdviceAction, saveMultipleChoiceDecisionAction } from '@/app/actions';
 import { useDecisionHistory } from '@/hooks/use-decision-history';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,9 +43,10 @@ function SubmitButton() {
 }
 
 export function MultipleChoiceForm() {
-  const [state, formAction, isPending] = useActionState(getMultipleChoiceAdviceAction, { advice: null, error: null });
+  const [adviceState, adviceAction, isAdvicePending] = useActionState(getMultipleChoiceAdviceAction, { advice: null, error: null });
   const { addDecision } = useDecisionHistory();
   const { toast } = useToast();
+  const [isSaving, startSavingTransition] = useTransition();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -61,39 +62,47 @@ export function MultipleChoiceForm() {
   });
 
   useEffect(() => {
-    if (state.error) {
+    if (adviceState.error) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: state.error,
+        description: adviceState.error,
       });
     }
-  }, [state.error, toast]);
+  }, [adviceState.error, toast]);
   
   const handleDecision = (decision: string) => {
-    const { context, options } = form.getValues();
     if (!decision) return;
-    
-    addDecision({
-      type: 'Multiple Choice',
-      context,
-      options: options.map(o => o.value),
-      decision,
+
+    startSavingTransition(async () => {
+      const { context, options } = form.getValues();
+      const result = await saveMultipleChoiceDecisionAction({ context, options, decision });
+
+      if (result.decision) {
+        addDecision(result.decision);
+        toast({
+          title: 'Decisão Salva',
+          description: `Você escolheu "${decision}" para: ${context.substring(0, 30)}...`,
+        });
+        form.reset();
+        adviceState.advice = null;
+      } else if (result.error) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao Salvar',
+          description: result.error,
+        });
+      }
     });
-    toast({
-      title: 'Decisão Salva',
-      description: `Você escolheu "${decision}" para: ${context.substring(0, 30)}...`,
-    });
-    form.reset();
-    state.advice = null;
   };
 
   const isFormInvalid = !form.formState.isValid;
   const currentOptions = form.watch('options');
+  const isDecisionDisabled = isSaving || isFormInvalid;
 
   return (
     <Form {...form}>
-      <form action={formAction} className="space-y-6">
+      <form action={adviceAction} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Sua Decisão</CardTitle>
@@ -167,11 +176,14 @@ export function MultipleChoiceForm() {
             <SubmitButton />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={isFormInvalid}>Tomar uma Decisão</Button>
+                <Button variant="outline" disabled={isDecisionDisabled}>
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Tomar uma Decisão
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 {currentOptions.map((option, index) => (
-                   option.value && <DropdownMenuItem key={index} onSelect={() => handleDecision(option.value)}>
+                   option.value && <DropdownMenuItem key={index} onSelect={() => handleDecision(option.value)} disabled={isSaving}>
                     {option.value}
                   </DropdownMenuItem>
                 ))}
@@ -180,7 +192,7 @@ export function MultipleChoiceForm() {
           </CardFooter>
         </Card>
         
-        <AiAdviceCard advice={state.advice} isLoading={isPending} />
+        <AiAdviceCard advice={adviceState.advice} isLoading={isAdvicePending} />
       </form>
     </Form>
   );

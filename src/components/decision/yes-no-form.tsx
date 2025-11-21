@@ -1,11 +1,11 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getYesNoAdviceAction } from '@/app/actions';
+import { getYesNoAdviceAction, saveYesNoDecisionAction } from '@/app/actions';
 import { useDecisionHistory } from '@/hooks/use-decision-history';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,9 +32,10 @@ function SubmitButton() {
 }
 
 export function YesNoForm() {
-  const [state, formAction, isPending] = useActionState(getYesNoAdviceAction, { advice: null, error: null });
+  const [adviceState, adviceAction, isAdvicePending] = useActionState(getYesNoAdviceAction, { advice: null, error: null });
   const { addDecision } = useDecisionHistory();
   const { toast } = useToast();
+  const [isSaving, startSavingTransition] = useTransition();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -44,38 +45,47 @@ export function YesNoForm() {
   });
 
   useEffect(() => {
-    if (state.error) {
+    if (adviceState.error) {
       toast({
         variant: 'destructive',
         title: 'Erro',
-        description: state.error,
+        description: adviceState.error,
       });
     }
-  }, [state.error, toast]);
+  }, [adviceState.error, toast]);
 
-  const handleDecision = (decision: 'Sim' | 'Não') => {
-    const { context } = form.getValues();
-    if (!context) {
-      form.trigger('context');
-      return;
-    }
-    if (form.formState.errors.context) return;
-    
-    addDecision({ type: 'Yes/No', context, decision });
-    toast({
-      title: 'Decisão Salva',
-      description: `Você decidiu "${decision}" para: ${context.substring(0, 30)}...`,
+  const handleDecision = async (decision: 'Sim' | 'Não') => {
+    const isFormValid = await form.trigger('context');
+    if (!isFormValid) return;
+
+    startSavingTransition(async () => {
+      const result = await saveYesNoDecisionAction({ context: form.getValues('context'), decision });
+      
+      if (result.decision) {
+        addDecision(result.decision);
+        toast({
+          title: 'Decisão Salva',
+          description: `Você decidiu "${decision}" para: ${result.decision.context.substring(0, 30)}...`,
+        });
+        form.reset();
+        // Clear advice when a decision is made
+        adviceState.advice = null;
+      } else if (result.error) {
+         toast({
+          variant: 'destructive',
+          title: 'Erro ao Salvar',
+          description: result.error,
+        });
+      }
     });
-    form.reset();
-    // Clear advice when a decision is made
-    state.advice = null;
   };
   
-  const isFormInvalid = !form.formState.isValid;
+  const isFormInvalid = !form.formState.isValid && form.formState.isSubmitted;
+  const isDecisionDisabled = isSaving || (!form.getValues('context') || !!form.formState.errors.context);
 
   return (
     <Form {...form}>
-      <form action={formAction} className="space-y-6">
+      <form action={adviceAction} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Sua Decisão</CardTitle>
@@ -103,17 +113,19 @@ export function YesNoForm() {
           <CardFooter className="flex flex-col sm:flex-row justify-between gap-4 items-stretch sm:items-center">
             <SubmitButton />
             <div className="flex gap-2">
-              <Button variant="outline" type="button" onClick={() => handleDecision('Sim')} className="flex-1" disabled={isFormInvalid}>
+              <Button variant="outline" type="button" onClick={() => handleDecision('Sim')} className="flex-1" disabled={isDecisionDisabled}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Decidir 'Sim'
               </Button>
-              <Button variant="outline" type="button" onClick={() => handleDecision('Não')} className="flex-1" disabled={isFormInvalid}>
+              <Button variant="outline" type="button" onClick={() => handleDecision('Não')} className="flex-1" disabled={isDecisionDisabled}>
+                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Decidir 'Não'
               </Button>
             </div>
           </CardFooter>
         </Card>
         
-        <AiAdviceCard advice={state.advice} isLoading={isPending} />
+        <AiAdviceCard advice={adviceState.advice} isLoading={isAdvicePending} />
       </form>
     </Form>
   );
